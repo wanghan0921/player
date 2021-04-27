@@ -4,8 +4,10 @@ import React, { useEffect, useState, useMemo } from 'react'
 
 interface ProgressProps {
   currentTime: number
-  onMoved: (currentTime: number) => void
+  onMoved: (currentTime: number, originPaused?: boolean) => void
   totalTime: number
+  pause: () => void
+  videoPaused: boolean
 }
 
 function captureRef<T>(value: T, setValue: (value: T) => void) {
@@ -42,16 +44,19 @@ function bindProgressPoint(
   totalTime: number,
   pointElm: HTMLDivElement,
   progressElm: HTMLDivElement,
-  // setMovedProgressData: (data: number | null) => void,
-  onMoved: (currentTime: number) => void
+  onMoved: (currentTime: number, originPaused?: boolean) => void,
+  pause: () => void,
+  videoPaused: boolean
 ) {
   const handleStart = (event: TouchEvent | MouseEvent) => {
-    console.log('点了')
+    console.log('点了 , 但还没动')
+    const originPaused = videoPaused
     const timePerPx = totalTime / progressElm.offsetWidth
     const originOffsetX = getCurrentX(event)
 
     let resultData = current
     const handleMove = (event: TouchEvent | MouseEvent) => {
+      pause()
       // console.log('``````````````````', timePerPx)
       // console.log('``````````````````', originOffsetX)
       // console.log('`````````````````', getCurrentX(event))
@@ -74,7 +79,7 @@ function bindProgressPoint(
       document.removeEventListener('mouseup', handleEnd)
       document.removeEventListener('touchend', handleEnd)
       // setMovedProgressData(null)
-      onMoved(resultData)
+      onMoved(resultData, originPaused)
     }
     document.addEventListener('mouseup', handleEnd)
     document.addEventListener('touchend', handleEnd)
@@ -87,7 +92,8 @@ function bindProgressPoint(
   }
 }
 
-export default function ProgressBar({ currentTime, onMoved, totalTime }: ProgressProps) {
+export default function ProgressBar(props: ProgressProps) {
+  const { currentTime, onMoved, totalTime, pause, videoPaused } = props
   const [pointElm, setPointElm] = useState<HTMLDivElement | null>(null)
   const [progressElm, setProgressElm] = useState<HTMLDivElement | null>(null)
   // const [movedProgressData, setMovedProgressData] = useState<number | null>(0)
@@ -98,9 +104,9 @@ export default function ProgressBar({ currentTime, onMoved, totalTime }: Progres
 
   useEffect(() => {
     if (pointElm && progressElm) {
-      return bindProgressPoint(currentData, totalTime, pointElm, progressElm, onMoved)
+      return bindProgressPoint(currentData, totalTime, pointElm, progressElm, onMoved, pause, videoPaused)
     }
-  }, [currentData, onMoved, pointElm, progressElm, totalTime])
+  }, [currentData, onMoved, pause, pointElm, progressElm, totalTime, videoPaused])
 
   // const ProgressCurrentTime = movedProgressData ? movedProgressData : currentTime
 

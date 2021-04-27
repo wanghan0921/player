@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import { IConfig } from './type'
 
 import ProgressBar from './progress-bar'
@@ -8,10 +8,12 @@ export default function VideoPlay(props: { config: IConfig }) {
 
   const videoRefs = useRef<null | HTMLVideoElement>(null)
 
-  // const [progressData, setProgressData] = useState<ProgressData>({ currentTime: 0 })
+  const [currentTime, setCurrentTime] = useState<number>(0) // 当前时间
+  const totalTime = useRef<number>(0) // 视频总时长
 
-  const [currentTime, setCurrentTime] = useState<number>(0)
-  const totalTime = useRef<number>(0)
+  // const videoPaused = useRef<boolean>(false)
+  const [videoPaused, setVideoPaused] = useState<boolean>(false)
+
   const timer = useRef(0)
 
   const getStatus = () => {
@@ -32,6 +34,7 @@ export default function VideoPlay(props: { config: IConfig }) {
         // setProgressData({ currentTime: videoEle.currentTime })
         setCurrentTime(videoEle.currentTime)
         totalTime.current = videoEle.duration
+        setVideoPaused(videoEle.paused)
       }
     }, 1000)
   }
@@ -41,6 +44,8 @@ export default function VideoPlay(props: { config: IConfig }) {
     if (videoEle) {
       videoEle.volume = volume
       videoEle.loop = loop
+      // console.log(videoEle.paused, 'init')
+      // videoPaused.current = videoEle.paused
       // console.log(videoEle.currentTime)
       // console.log(videoEle.buffered)
       // console.log(videoEle.duration)
@@ -75,27 +80,36 @@ export default function VideoPlay(props: { config: IConfig }) {
     init()
   }, [init, loop, volume])
 
-  const onProgressBarMove = useCallback((currentTime: number) => {
+  // 播放
+  const play = () => {
+    videoRefs.current && videoRefs.current.play()
+  }
+
+  const onProgressBarMove = useCallback((currentTime: number, originPaused?: boolean) => {
     const videoPlayer = videoRefs.current
+    // 如果在拖动前的状态是播放 , 则拖动后也播放
+    if (originPaused === false) play()
     if (videoPlayer) {
-      console.log(111111)
       setCurrentTime(currentTime)
-      // videoPlayer.seek(currentTime)
       videoPlayer.currentTime = currentTime
     }
   }, [])
 
-  const turnOFF = useCallback(() => {
-    const videoPlayer = videoRefs.current
-    if (videoPlayer) {
-      videoPlayer.paused ? videoPlayer.play() : videoPlayer.pause()
-    }
-  }, [])
+  // 暂停
+  const pause = () => {
+    videoRefs.current && videoRefs.current.pause()
+  }
 
   // http://clips.vorwaerts-gmbh.de/big_buck_bunny.mp4
   return (
     <div>
-      <ProgressBar currentTime={currentTime} totalTime={totalTime.current} onMoved={onProgressBarMove} />
+      <ProgressBar
+        currentTime={currentTime}
+        videoPaused={videoPaused}
+        totalTime={totalTime.current}
+        pause={pause}
+        onMoved={onProgressBarMove}
+      />
       <video ref={videoRefs} src={src} width={width} height={height} muted autoPlay controls />
     </div>
   )
