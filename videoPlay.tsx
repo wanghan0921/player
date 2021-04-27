@@ -16,27 +16,27 @@ export default function VideoPlay(props: { config: IConfig }) {
 
   const timer = useRef(0)
 
-  const getStatus = () => {
-    clearInterval(timer.current)
-    timer.current = window.setInterval(() => {
-      const videoEle = videoRefs.current
-      if (videoEle) {
-        // console.log(videoEle.currentTime, 'currentTime') // 当前时间
-        // console.log(videoEle.buffered.start(0)) // 返回表示视频已缓冲部分的 TimeRanges 对象。
-        // console.log(videoEle.buffered.end(0)) // 返回表示视频已缓冲部分的 TimeRanges 对象。
-        // console.log(videoEle.duration, 'duration') // 返回视频的长度（以秒计）。
-        // console.log(videoEle.readyState) // 返回视频当前的就绪状态。
-        // 0 = HAVE_NOTHING - 没有关于音频/视频是否就绪的信息
-        // 1 = HAVE_METADATA - 关于音频/视频就绪的元数据
-        // 2 = HAVE_CURRENT_DATA - 关于当前播放位置的数据是可用的，但没有足够的数据来播放下一帧/毫秒
-        // 3 = HAVE_FUTURE_DATA - 当前及至少下一帧的数据是可用的
-        // 4 = HAVE_ENOUGH_DATA - 可用数据足以开始播放
-        // setProgressData({ currentTime: videoEle.currentTime })
-        setCurrentTime(videoEle.currentTime)
-        totalTime.current = videoEle.duration
-        setVideoPaused(videoEle.paused)
-      }
-    }, 1000)
+  const onTimeUpdate = () => {
+    // clearInterval(timer.current)
+    // timer.current = window.setInterval(() => {
+    const videoEle = videoRefs.current
+    if (videoEle) {
+      // console.log(videoEle.currentTime, 'currentTime') // 当前时间
+      // console.log(videoEle.buffered.start(0)) // 返回表示视频已缓冲部分的 TimeRanges 对象。
+      // console.log(videoEle.buffered.end(0)) // 返回表示视频已缓冲部分的 TimeRanges 对象。
+      // console.log(videoEle.duration, 'duration') // 返回视频的长度（以秒计）。
+      // console.log(videoEle.readyState) // 返回视频当前的就绪状态。
+      // 0 = HAVE_NOTHING - 没有关于音频/视频是否就绪的信息
+      // 1 = HAVE_METADATA - 关于音频/视频就绪的元数据
+      // 2 = HAVE_CURRENT_DATA - 关于当前播放位置的数据是可用的，但没有足够的数据来播放下一帧/毫秒
+      // 3 = HAVE_FUTURE_DATA - 当前及至少下一帧的数据是可用的
+      // 4 = HAVE_ENOUGH_DATA - 可用数据足以开始播放
+      // setProgressData({ currentTime: videoEle.currentTime })
+      setCurrentTime(videoEle.currentTime)
+      setVideoPaused(videoEle.paused)
+      console.log(videoEle.networkState, 'networkState')
+    }
+    // }, 1000)
   }
 
   const init = useCallback(() => {
@@ -53,10 +53,9 @@ export default function VideoPlay(props: { config: IConfig }) {
       // videoEle.addEventListener('loadstart', function() {
       //   console.log('loadstart')
       // })
-      // videoEle.addEventListener('durationchange', function() {
-      //   console.log('durationchange')
-      //   console.log(videoEle.duration)
-      // })
+
+      const handleTotalTime = () => (totalTime.current = videoEle.duration)
+      videoEle.addEventListener('durationchange', handleTotalTime)
       // videoEle.addEventListener('loadedmetadata', function() {
       //   console.log('loadedmetadata')
       // })
@@ -72,7 +71,10 @@ export default function VideoPlay(props: { config: IConfig }) {
       // videoEle.addEventListener('canplaythrough', function() {
       //   console.log('canplaythrough')
       // })
-      getStatus()
+      // getStatus()
+      return () => {
+        videoEle.removeEventListener('durationchange', handleTotalTime)
+      }
     }
   }, [loop, volume])
 
@@ -110,7 +112,16 @@ export default function VideoPlay(props: { config: IConfig }) {
         pause={pause}
         onMoved={onProgressBarMove}
       />
-      <video ref={videoRefs} src={src} width={width} height={height} muted autoPlay controls />
+      <video
+        ref={videoRefs}
+        onTimeUpdate={onTimeUpdate}
+        src={src}
+        width={width}
+        height={height}
+        muted
+        autoPlay
+        controls
+      />
     </div>
   )
 }
