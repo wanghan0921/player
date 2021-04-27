@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { IConfig } from './type'
 
 import ProgressBar from './progress-bar'
@@ -13,8 +13,6 @@ export default function VideoPlay(props: { config: IConfig }) {
 
   // const videoPaused = useRef<boolean>(false)
   const [videoPaused, setVideoPaused] = useState<boolean>(false)
-
-  const timer = useRef(0)
 
   const onTimeUpdate = () => {
     // clearInterval(timer.current)
@@ -37,6 +35,20 @@ export default function VideoPlay(props: { config: IConfig }) {
       console.log(videoEle.networkState, 'networkState')
     }
     // }, 1000)
+  }
+
+  const onSeeked = () => {
+    const videoEle = videoRefs.current
+    if (videoEle) {
+      console.log('onSeeked....onSeeked....onSeeked...onSeeked')
+    }
+  }
+
+  const onSeeking = () => {
+    const videoEle = videoRefs.current
+    if (videoEle) {
+      console.log('onSeeking....onSeeking....onSeeking...onSeeking')
+    }
   }
 
   const init = useCallback(() => {
@@ -115,6 +127,8 @@ export default function VideoPlay(props: { config: IConfig }) {
       <video
         ref={videoRefs}
         onTimeUpdate={onTimeUpdate}
+        onSeeked={onSeeked}
+        onSeeking={onSeeking}
         src={src}
         width={width}
         height={height}
