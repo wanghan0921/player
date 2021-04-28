@@ -6,8 +6,6 @@ interface ProgressProps {
   currentTime: number
   onMoved: (currentTime: number, originPaused?: boolean) => void
   totalTime: number
-  pause: () => void
-  videoPaused: boolean
 }
 
 function captureRef<T>(value: T, setValue: (value: T) => void) {
@@ -45,30 +43,20 @@ function bindProgressPoint(
   pointElm: HTMLDivElement,
   progressElm: HTMLDivElement,
   onMoved: (currentTime: number, originPaused?: boolean) => void,
-  pause: () => void,
-  videoPaused: boolean
+  setMovedProgressData: (current: number | null) => void
 ) {
   const handleStart = (event: TouchEvent | MouseEvent) => {
     console.log('点了 , 但还没动')
-    const originPaused = videoPaused
     const timePerPx = totalTime / progressElm.offsetWidth
     const originOffsetX = getCurrentX(event)
 
     let resultData = current
     const handleMove = (event: TouchEvent | MouseEvent) => {
-      pause()
-      // console.log('``````````````````', timePerPx)
-      // console.log('``````````````````', originOffsetX)
-      // console.log('`````````````````', getCurrentX(event))
       const offsetX = getCurrentX(event) - originOffsetX
-      // console.log('`````````````````', offsetX)
       const currentTime = Math.floor(current + offsetX * timePerPx)
       resultData = Math.min(Math.max(currentTime, 0), totalTime)
-      // console.log(resultData)
-      // setMovedProgressData(resultData)
-      // setMovedProgressData(null)
-      onMoved(resultData)
-      console.log('aaaaaaaaaaaaaaaaaaaaa')
+      setMovedProgressData(resultData)
+      console.log('拖动中')
     }
     document.addEventListener('touchmove', handleMove)
     document.addEventListener('mousemove', handleMove)
@@ -78,9 +66,8 @@ function bindProgressPoint(
       document.removeEventListener('touchmove', handleMove)
       document.removeEventListener('mouseup', handleEnd)
       document.removeEventListener('touchend', handleEnd)
-      // setMovedProgressData(null)
-      console.log(originPaused)
-      onMoved(resultData, originPaused)
+      setMovedProgressData(null)
+      onMoved(resultData)
     }
     document.addEventListener('mouseup', handleEnd)
     document.addEventListener('touchend', handleEnd)
@@ -94,10 +81,10 @@ function bindProgressPoint(
 }
 
 export default function ProgressBar(props: ProgressProps) {
-  const { currentTime, onMoved, totalTime, pause, videoPaused } = props
+  const { currentTime, onMoved, totalTime } = props
   const [pointElm, setPointElm] = useState<HTMLDivElement | null>(null)
   const [progressElm, setProgressElm] = useState<HTMLDivElement | null>(null)
-  // const [movedProgressData, setMovedProgressData] = useState<number | null>(0)
+  const [movedProgressData, setMovedProgressData] = useState<number | null>(0)
 
   const currentData = useMemo(() => {
     return currentTime
@@ -105,22 +92,22 @@ export default function ProgressBar(props: ProgressProps) {
 
   useEffect(() => {
     if (pointElm && progressElm) {
-      return bindProgressPoint(currentData, totalTime, pointElm, progressElm, onMoved, pause, videoPaused)
+      return bindProgressPoint(currentData, totalTime, pointElm, progressElm, onMoved, setMovedProgressData)
     }
-  }, [currentData, onMoved, pause, pointElm, progressElm, totalTime, videoPaused])
+  }, [currentData, onMoved, pointElm, progressElm, totalTime, setMovedProgressData])
 
-  // const ProgressCurrentTime = movedProgressData ? movedProgressData : currentTime
+  const ProgressCurrentTime = movedProgressData ? movedProgressData : currentTime
 
   return (
     <div className="ProgressBar" style={{ backgroundColor: '#000' }}>
-      <div className="ProgressBar-currentTime">{renderTime(currentTime || 0)}</div>
+      <div className="ProgressBar-currentTime">{renderTime(ProgressCurrentTime || 0)}</div>
       {/* ----------------------------------------------------------------------------- */}
 
       <div className="ProgressBar-progress" ref={captureRef(progressElm, setProgressElm)}>
         <div
           className="ProgressBar-progress-fg"
           style={{
-            width: totalTime && totalTime > 0 ? `${(Math.min(currentTime, totalTime) / totalTime) * 100}%` : 0
+            width: totalTime && totalTime > 0 ? `${(Math.min(ProgressCurrentTime, totalTime) / totalTime) * 100}%` : 0
           }}
         />
         <div className="ProgressBar-progress-pointBox" ref={captureRef(pointElm, setPointElm)}>
