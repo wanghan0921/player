@@ -1,27 +1,42 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { IConfig } from './type'
+import { IProps } from './type'
+
+import { MediaManager } from './manager'
 
 import ProgressBar from './progress-bar'
 
-export default function VideoPlay(props: { config: IConfig }) {
-  const { src, width = '100%', height = '100%', volume = 1, loop = false } = props.config
+export type VideoStatus = 'playing' | 'pausing' | 'waiting'
+
+export default function VideoPlay(props: IProps) {
+  // const { src, width = '100%', height = '100%', volume = 1, loop = false } = props.options
+  const { type, options } = props
 
   const videoRefs = useRef<null | HTMLVideoElement>(null)
 
   const [currentTime, setCurrentTime] = useState<number>(0) // 当前时间
   const totalTime = useRef<number>(0) // 视频总时长
 
-  // const videoPaused = useRef<boolean>(false)
   const [videoPaused, setVideoPaused] = useState<boolean>(false)
 
+  const playerElement = React.createRef<HTMLDivElement>()
+
+  const url = options.src
+  const mediaManager = new MediaManager(type, url, options)
+  const mediaElement = mediaManager.getElement()
+
+  const handleTotalTime = () => {
+    const videoEle = videoRefs.current
+    if (videoEle) {
+      totalTime.current = videoEle.duration
+    }
+  }
   const onTimeUpdate = () => {
-    // clearInterval(timer.current)
-    // timer.current = window.setInterval(() => {
     const videoEle = videoRefs.current
     if (videoEle) {
       // console.log(videoEle.currentTime, 'currentTime') // 当前时间
-      // console.log(videoEle.buffered.start(0)) // 返回表示视频已缓冲部分的 TimeRanges 对象。
-      // console.log(videoEle.buffered.end(0)) // 返回表示视频已缓冲部分的 TimeRanges 对象。
+      console.log(videoEle.buffered)
+      console.log(videoEle.buffered.start(0)) // 返回表示视频已缓冲部分的 TimeRanges 对象。
+      console.log(videoEle.buffered.end(0)) // 返回表示视频已缓冲部分的 TimeRanges 对象。
       // console.log(videoEle.duration, 'duration') // 返回视频的长度（以秒计）。
       // console.log(videoEle.readyState) // 返回视频当前的就绪状态。
       // 0 = HAVE_NOTHING - 没有关于音频/视频是否就绪的信息
@@ -33,6 +48,7 @@ export default function VideoPlay(props: { config: IConfig }) {
       setCurrentTime(videoEle.currentTime)
       setVideoPaused(videoEle.paused)
       console.log(videoEle.networkState, 'networkState')
+      handleTotalTime()
     }
     // }, 1000)
   }
@@ -54,45 +70,45 @@ export default function VideoPlay(props: { config: IConfig }) {
   const init = useCallback(() => {
     const videoEle = videoRefs.current
     if (videoEle) {
-      videoEle.volume = volume
-      videoEle.loop = loop
+      videoEle.volume = options.volume
+      videoEle.loop = options.loop
       // console.log(videoEle.paused, 'init')
       // videoPaused.current = videoEle.paused
       // console.log(videoEle.currentTime)
       // console.log(videoEle.buffered)
       // console.log(videoEle.duration)
       // console.log(videoEle.readyState)
-      // videoEle.addEventListener('loadstart', function() {
-      //   console.log('loadstart')
-      // })
+      videoEle.addEventListener('loadstart', function() {
+        console.log('loadstart')
+      })
 
-      const handleTotalTime = () => (totalTime.current = videoEle.duration)
       videoEle.addEventListener('durationchange', handleTotalTime)
-      // videoEle.addEventListener('loadedmetadata', function() {
-      //   console.log('loadedmetadata')
-      // })
-      // videoEle.addEventListener('loadeddata', function() {
-      //   console.log('loadeddata')
-      // })
-      // videoEle.addEventListener('progress', function() {
-      //   console.log('progress')
-      // })
-      // videoEle.addEventListener('canplay', function() {
-      //   console.log('canplay')
-      // })
-      // videoEle.addEventListener('canplaythrough', function() {
-      //   console.log('canplaythrough')
-      // })
+      videoEle.addEventListener('loadedmetadata', function() {
+        console.log('loadedmetadata')
+      })
+      videoEle.addEventListener('loadeddata', function() {
+        console.log('loadeddata')
+        totalTime.current = videoEle.duration
+      })
+      videoEle.addEventListener('progress', function() {
+        console.log('progress')
+      })
+      videoEle.addEventListener('canplay', function() {
+        console.log('canplay')
+      })
+      videoEle.addEventListener('canplaythrough', function() {
+        console.log('canplaythrough')
+      })
       // getStatus()
       return () => {
         videoEle.removeEventListener('durationchange', handleTotalTime)
       }
     }
-  }, [loop, volume])
+  }, [options.loop, options.volume])
 
   useEffect(() => {
-    init()
-  }, [init, loop, volume])
+    playerElement.current && playerElement.current.appendChild(mediaElement)
+  }, [init, mediaElement, playerElement])
 
   // 播放
   const play = () => {
@@ -124,7 +140,8 @@ export default function VideoPlay(props: { config: IConfig }) {
         pause={pause}
         onMoved={onProgressBarMove}
       />
-      <video
+      <div ref={playerElement}></div>
+      {/* <video
         ref={videoRefs}
         onTimeUpdate={onTimeUpdate}
         onSeeked={onSeeked}
@@ -132,10 +149,8 @@ export default function VideoPlay(props: { config: IConfig }) {
         src={src}
         width={width}
         height={height}
-        muted
-        autoPlay
         controls
-      />
+      /> */}
     </div>
   )
 }

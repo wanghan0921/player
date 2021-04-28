@@ -4,10 +4,10 @@ import AudioPlay from './audioPlay'
 import VideoPlay from './videoPlay'
 
 export default function Player(props: IProps) {
-  const { type, config } = props
-  if (type === 'audio') {
-    return <AudioPlay config={config} />
-  } else {
-    return <VideoPlay config={config} />
-  }
+  const { type, options } = props
+  // if (type === 'audio') {
+  //   return <AudioPlay config={options} />
+  // } else {
+  return <VideoPlay options={options} type={type} />
+  // }
 }
