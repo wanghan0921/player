@@ -79,6 +79,7 @@ function bindProgressPoint(
       document.removeEventListener('mouseup', handleEnd)
       document.removeEventListener('touchend', handleEnd)
       // setMovedProgressData(null)
+      console.log(originPaused)
       onMoved(resultData, originPaused)
     }
     document.addEventListener('mouseup', handleEnd)

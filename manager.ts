@@ -16,29 +16,28 @@ export class MediaManager {
   private timeupdateHandlers: TimeupdateHandler[] = []
   private timeupdateEventHandler: () => void
 
-  constructor(private type: 'audio' | 'video', private src: string, private options: MediaManagerOptions) {
-    this.mediaHTMLElement = this.createMediaElement(this.type, this.src)
+  constructor(private ele: HTMLVideoElement, private src: string, private options: MediaManagerOptions) {
+    this.mediaHTMLElement = this.initMediaElement(this.ele, this.src)
     this.timeupdateEventHandler = this.timeupdateHandler.bind(this)
   }
 
-  // 创建媒体元素 , 初始化属性
-  private createMediaElement(type: 'audio' | 'video', src: string) {
-    const mediaHTMLElement = document.createElement(type)
-    mediaHTMLElement.src = src
-    mediaHTMLElement.volume = this.options.volume || 1
-    mediaHTMLElement.autoplay = this.options.autoplay || true
-    mediaHTMLElement.preload = this.options.preload || 'auto'
-    mediaHTMLElement.loop = this.options.loop || false
-    mediaHTMLElement.controls = false
-    mediaHTMLElement.style.height = this.options.height || '100%'
-    mediaHTMLElement.style.width = this.options.width || '100%'
-    if (this.type === 'video') {
-      mediaHTMLElement.setAttribute('playsinline', '')
-      mediaHTMLElement.setAttribute('webkit-playsinline', '')
-      mediaHTMLElement.setAttribute('x5-playsinline', 'true')
-      mediaHTMLElement.setAttribute('x-webkit-airplay', 'true')
-    }
-    return mediaHTMLElement
+  // 初始化属性
+  private initMediaElement(ele: HTMLVideoElement, src: string) {
+    ele.src = src
+    ele.volume = this.options.volume || 1
+    ele.autoplay = this.options.autoplay || false
+    ele.preload = this.options.preload || 'auto'
+    ele.loop = this.options.loop || false
+    ele.controls = false
+    ele.style.height = this.options.height || '100%'
+    ele.style.width = this.options.width || '100%'
+    // if (this.ele === ele) {
+    ele.setAttribute('playsinline', '')
+    ele.setAttribute('webkit-playsinline', '')
+    ele.setAttribute('x5-playsinline', 'true')
+    ele.setAttribute('x-webkit-airplay', 'true')
+    // }
+    return ele
   }
 
   getElement() {
@@ -79,6 +78,14 @@ export class MediaManager {
    */
   buffered() {
     return this.mediaHTMLElement.buffered
+  }
+
+  /**
+   * 返回视频是否暂停
+   * @returns {boolean}
+   */
+  paused() {
+    return this.mediaHTMLElement.paused
   }
 
   // getMediaProperty(name: string) {

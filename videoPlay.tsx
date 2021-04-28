@@ -1,156 +1,131 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { IProps } from './type'
-
-import { MediaManager } from './manager'
+import { IOptions } from './type'
 
 import ProgressBar from './progress-bar'
 
-export type VideoStatus = 'playing' | 'pausing' | 'waiting'
+import { MediaManager } from './manager'
 
-export default function VideoPlay(props: IProps) {
+export type VideoStatus = 'playing' | 'pausing' | 'waiting'
+// import { imgPathTo } from '@services/lib/path'
+export const PUBLIC_URL = process.env.PUBLIC_URL || ''
+
+export function staticPathTo(path: string): string {
+  if (/\/$/.test(PUBLIC_URL)) {
+    return `${PUBLIC_URL}${path}`
+  } else {
+    return `${PUBLIC_URL}/${path}`
+  }
+}
+
+export function imgPathTo(name: string): string {
+  return staticPathTo('static/img/' + name)
+}
+
+export default function VideoPlay(props: { options: IOptions; type: 'audio' | 'video' }) {
   // const { src, width = '100%', height = '100%', volume = 1, loop = false } = props.options
-  const { type, options } = props
 
   const videoRefs = useRef<null | HTMLVideoElement>(null)
 
   const [currentTime, setCurrentTime] = useState<number>(0) // 当前时间
-  const totalTime = useRef<number>(0) // 视频总时长
+  const [totalTime, setTotalTime] = useState<number>(0) // 视频总时长
 
   const [videoPaused, setVideoPaused] = useState<boolean>(false)
 
-  const playerElement = React.createRef<HTMLDivElement>()
+  const [videoStatus, setVideoStatus] = useState<VideoStatus>('waiting')
 
-  const url = options.src
-  const mediaManager = new MediaManager(type, url, options)
-  const mediaElement = mediaManager.getElement()
-
-  const handleTotalTime = () => {
-    const videoEle = videoRefs.current
-    if (videoEle) {
-      totalTime.current = videoEle.duration
-    }
-  }
-  const onTimeUpdate = () => {
-    const videoEle = videoRefs.current
-    if (videoEle) {
-      // console.log(videoEle.currentTime, 'currentTime') // 当前时间
-      console.log(videoEle.buffered)
-      console.log(videoEle.buffered.start(0)) // 返回表示视频已缓冲部分的 TimeRanges 对象。
-      console.log(videoEle.buffered.end(0)) // 返回表示视频已缓冲部分的 TimeRanges 对象。
-      // console.log(videoEle.duration, 'duration') // 返回视频的长度（以秒计）。
-      // console.log(videoEle.readyState) // 返回视频当前的就绪状态。
-      // 0 = HAVE_NOTHING - 没有关于音频/视频是否就绪的信息
-      // 1 = HAVE_METADATA - 关于音频/视频就绪的元数据
-      // 2 = HAVE_CURRENT_DATA - 关于当前播放位置的数据是可用的，但没有足够的数据来播放下一帧/毫秒
-      // 3 = HAVE_FUTURE_DATA - 当前及至少下一帧的数据是可用的
-      // 4 = HAVE_ENOUGH_DATA - 可用数据足以开始播放
-      // setProgressData({ currentTime: videoEle.currentTime })
-      setCurrentTime(videoEle.currentTime)
-      setVideoPaused(videoEle.paused)
-      console.log(videoEle.networkState, 'networkState')
-      handleTotalTime()
-    }
-    // }, 1000)
-  }
-
-  const onSeeked = () => {
-    const videoEle = videoRefs.current
-    if (videoEle) {
-      console.log('onSeeked....onSeeked....onSeeked...onSeeked')
-    }
-  }
-
-  const onSeeking = () => {
-    const videoEle = videoRefs.current
-    if (videoEle) {
-      console.log('onSeeking....onSeeking....onSeeking...onSeeking')
-    }
-  }
+  let videoPlayer: any
 
   const init = useCallback(() => {
     const videoEle = videoRefs.current
     if (videoEle) {
-      videoEle.volume = options.volume
-      videoEle.loop = options.loop
-      // console.log(videoEle.paused, 'init')
-      // videoPaused.current = videoEle.paused
-      // console.log(videoEle.currentTime)
-      // console.log(videoEle.buffered)
-      // console.log(videoEle.duration)
-      // console.log(videoEle.readyState)
-      videoEle.addEventListener('loadstart', function() {
-        console.log('loadstart')
+      videoPlayer = new MediaManager(videoEle, props.options.src, props.options)
+      // videoPlayer.autoPlay()
+      videoPlayer.on('loadstart', () => {
+        setVideoStatus('waiting')
       })
-
-      videoEle.addEventListener('durationchange', handleTotalTime)
-      videoEle.addEventListener('loadedmetadata', function() {
-        console.log('loadedmetadata')
+      videoPlayer.on('loadedmetadata', () => {
+        setTotalTime(videoPlayer.getDuration())
       })
-      videoEle.addEventListener('loadeddata', function() {
-        console.log('loadeddata')
-        totalTime.current = videoEle.duration
-      })
-      videoEle.addEventListener('progress', function() {
-        console.log('progress')
-      })
-      videoEle.addEventListener('canplay', function() {
+      videoPlayer.on('canplay', () => {
         console.log('canplay')
+        videoPlayer
+          .play()
+          .then(() => setVideoStatus('playing'))
+          .catch(() => setVideoStatus('pausing'))
       })
-      videoEle.addEventListener('canplaythrough', function() {
-        console.log('canplaythrough')
+      videoPlayer.on('timeupdate', () => {
+        setCurrentTime(videoPlayer.currentTime())
+        setVideoPaused(videoPlayer.paused())
       })
-      // getStatus()
-      return () => {
-        videoEle.removeEventListener('durationchange', handleTotalTime)
-      }
     }
-  }, [options.loop, options.volume])
+  }, [props.options, videoPlayer])
 
   useEffect(() => {
-    playerElement.current && playerElement.current.appendChild(mediaElement)
-  }, [init, mediaElement, playerElement])
+    init()
+  }, [init])
 
   // 播放
-  const play = () => {
-    videoRefs.current && videoRefs.current.play()
-  }
+  const play = useCallback(() => {
+    videoPlayer
+      .play()
+      .then(() => setVideoStatus('playing'))
+      .catch(() => console.log('err'))
+  }, [videoPlayer])
 
-  const onProgressBarMove = useCallback((currentTime: number, originPaused?: boolean) => {
-    const videoPlayer = videoRefs.current
-    // 如果在拖动前的状态是播放 , 则拖动后也播放
-    if (originPaused === false) play()
-    if (videoPlayer) {
-      setCurrentTime(currentTime)
-      videoPlayer.currentTime = currentTime
-    }
-  }, [])
+  const onProgressBarMove = useCallback(
+    (currentTime: number, originPaused?: boolean) => {
+      const videoPlayer = videoRefs.current
+      // 如果在拖动前的状态是播放 , 则拖动后也播放
+      if (originPaused === false) play()
+      if (videoPlayer) {
+        setCurrentTime(currentTime)
+        videoPlayer.currentTime = currentTime
+      }
+    },
+    [play]
+  )
 
   // 暂停
-  const pause = () => {
-    videoRefs.current && videoRefs.current.pause()
-  }
+  const pause = useCallback(() => {
+    videoPlayer.pause()
+    setVideoStatus('pausing')
+  }, [videoPlayer])
+
+  // 播放按钮
+  // const [cName, icon, action]: any = {
+  //   playing: ['VideoPlay-pauseImg', imgPathTo('暂停按钮.png'), onPause, 'VideoPlay-pause'],
+  //   pausing: ['VideoPlay-playImg', imgPathTo('播放按钮.png'), onPlay, 'VideoPlay-play'],
+  //   waiting: ['VideoPlay-loadImg', imgPathTo('加载按钮.png'), onPause, 'VideoPlay-load']
+  // }[playButtonState]
+
+  // const statusButtonView = () => {
+  const [cName, icon, action]: any = {
+    playing: ['VideoPlay-pauseImg', imgPathTo('ico_暂停@3x.png'), pause, 'VideoPlay-pause'],
+    pausing: ['VideoPlay-playImg', imgPathTo('ico_播放@3x.png'), play, 'VideoPlay-play'],
+    waiting: ['VideoPlay-loadImg', imgPathTo('ico_加载@3x.png'), pause, 'VideoPlay-load']
+  }[videoStatus]
+  //   // console.log(cName, icon, action)
+  //   // return <img className={cName} style={{ width: '50px', height: '50px' }} onClick={action} src={icon} />
+  //   return <img style={{ width: '50px', height: '50px' }} onClick={play} src={imgPathTo('ico_播放@3x.png')} />
+  // }
+
+  const statusButtonView = (
+    <img className={cName} style={{ width: '50px', height: '50px' }} onClick={action} src={icon} />
+  )
 
   // http://clips.vorwaerts-gmbh.de/big_buck_bunny.mp4
   return (
-    <div>
+    <>
       <ProgressBar
         currentTime={currentTime}
         videoPaused={videoPaused}
-        totalTime={totalTime.current}
+        totalTime={totalTime}
         pause={pause}
         onMoved={onProgressBarMove}
       />
-      <div ref={playerElement}></div>
-      {/* <video
-        ref={videoRefs}
-        onTimeUpdate={onTimeUpdate}
-        onSeeked={onSeeked}
-        onSeeking={onSeeking}
-        src={src}
-        width={width}
-        height={height}
-        controls
-      /> */}
-    </div>
+      <video ref={videoRefs} />
+
+      {statusButtonView}
+    </>
   )
 }
