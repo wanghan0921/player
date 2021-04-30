@@ -16,6 +16,12 @@ export function staticPathTo(path: string): string {
   }
 }
 
+interface IBtnStatus {
+  playing: [string, string, () => void]
+  pausing: [string, string, () => void]
+  waiting: [string, string, () => void]
+}
+
 export function imgPathTo(name: string): string {
   return staticPathTo('static/img/' + name)
 }
@@ -23,19 +29,20 @@ export function imgPathTo(name: string): string {
 export default function VideoPlay(props: IProps) {
   // const { src, width = '100%', height = '100%', volume = 1, loop = false } = props.options
 
-  const videoRefs = useRef<null | HTMLVideoElement>(null)
+  const videoRef = useRef<null | HTMLVideoElement>(null)
 
   const [currentTime, setCurrentTime] = useState<number>(0) // 当前时间
   const [totalTime, setTotalTime] = useState<number>(0) // 视频总时长
 
   const [videoStatus, setVideoStatus] = useState<VideoStatus>('waiting')
 
-  let videoPlayer: any
+  const videoPlayerRef = useRef<null | MediaManager>(null)
 
   const init = useCallback(() => {
-    const videoEle = videoRefs.current
+    const videoEle = videoRef.current
     if (videoEle) {
-      videoPlayer = new MediaManager(videoEle, props.options.src, props.options)
+      const videoPlayer = new MediaManager(videoEle, props.options.src, props.options)
+      videoPlayerRef.current = videoPlayer
       // videoPlayer.autoPlay()
       videoPlayer.play()
       videoPlayer.on('loadstart', () => {
@@ -74,7 +81,7 @@ export default function VideoPlay(props: IProps) {
         })
       }
     }
-  }, [props.options, videoPlayer])
+  }, [props.options])
 
   useEffect(() => {
     init()
@@ -82,14 +89,16 @@ export default function VideoPlay(props: IProps) {
 
   // 播放
   const play = useCallback(() => {
-    videoPlayer
-      .play()
-      .then(() => setVideoStatus('playing'))
-      .catch(() => console.log('err'))
-  }, [videoPlayer])
+    const videoPlayer = videoPlayerRef.current
+    videoPlayer &&
+      videoPlayer
+        .play()
+        .then(() => setVideoStatus('playing'))
+        .catch(() => console.log('err'))
+  }, [])
 
   const onProgressBarMove = useCallback((currentTime: number) => {
-    const videoPlayer = videoRefs.current
+    const videoPlayer = videoRef.current
     if (videoPlayer) {
       setCurrentTime(currentTime)
       videoPlayer.currentTime = currentTime
@@ -98,17 +107,20 @@ export default function VideoPlay(props: IProps) {
 
   // 暂停
   const pause = useCallback(() => {
-    videoPlayer.pause()
+    const videoPlayer = videoPlayerRef.current
+    videoPlayer && videoPlayer.pause()
     setVideoStatus('pausing')
-  }, [videoPlayer])
+  }, [])
+
+  const btnStatus: IBtnStatus = {
+    playing: ['VideoPlay-pauseImg', imgPathTo('ico_暂停@3x.png'), pause],
+    pausing: ['VideoPlay-playImg', imgPathTo('ico_播放@3x.png'), play],
+    waiting: ['VideoPlay-loadImg', imgPathTo('ico_加载@3x.png'), pause]
+  }
+
+  const [cName, icon, action] = btnStatus[videoStatus]
 
   // 播放按钮
-  const [cName, icon, action]: any = {
-    playing: ['VideoPlay-pauseImg', imgPathTo('ico_暂停@3x.png'), pause, 'VideoPlay-pause'],
-    pausing: ['VideoPlay-playImg', imgPathTo('ico_播放@3x.png'), play, 'VideoPlay-play'],
-    waiting: ['VideoPlay-loadImg', imgPathTo('ico_加载@3x.png'), pause, 'VideoPlay-load']
-  }[videoStatus]
-
   const statusButtonView = (
     <img className={cName} style={{ width: '50px', height: '50px' }} onClick={action} src={icon} />
   )
@@ -117,7 +129,7 @@ export default function VideoPlay(props: IProps) {
   return (
     <>
       <ProgressBar currentTime={currentTime} totalTime={totalTime} onMoved={onProgressBarMove} />
-      <video ref={videoRefs} />
+      <video ref={videoRef} />
 
       {statusButtonView}
     </>

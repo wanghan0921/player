@@ -62,6 +62,7 @@ function bindProgressPoint(
     document.addEventListener('mousemove', handleMove)
 
     const handleEnd = () => {
+      console.log('松手了')
       document.removeEventListener('mousemove', handleMove)
       document.removeEventListener('touchmove', handleMove)
       document.removeEventListener('mouseup', handleEnd)
@@ -72,11 +73,11 @@ function bindProgressPoint(
     document.addEventListener('mouseup', handleEnd)
     document.addEventListener('touchend', handleEnd)
   }
-  pointElm.addEventListener('mousedown', handleStart)
-  pointElm.addEventListener('touchstart', handleStart)
+  pointElm.addEventListener('mousedown', handleStart, true)
+  pointElm.addEventListener('touchstart', handleStart, true)
   return () => {
-    pointElm.removeEventListener('mousedown', handleStart)
-    pointElm.removeEventListener('touchstart', handleStart)
+    pointElm.removeEventListener('mousedown', handleStart, true)
+    pointElm.removeEventListener('touchstart', handleStart, true)
   }
 }
 
